@@ -30,6 +30,7 @@ jobs:
             exit 1
           fi
           echo "dir=$(dirname "$f")" >> "$GITHUB_OUTPUT"
+          echo "Proyek ditemukan di: $(dirname "$f")"
 
       - uses: actions/setup-java@v4
         with:
@@ -42,7 +43,13 @@ jobs:
 
       - name: Build debug APK
         working-directory: ${{ steps.loc.outputs.dir }}
-        run: gradle assembleDebug
+        run: |
+          for i in 1 2 3 4; do
+            gradle assembleDebug --no-daemon && exit 0
+            echo "Percobaan $i gagal, menunggu lalu mengulang..."
+            sleep $((i * 45))
+          done
+          exit 1
 
       - uses: actions/upload-artifact@v4
         with:
