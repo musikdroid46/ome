@@ -2,7 +2,6 @@ name: Build APK
 
 on:
   push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -10,6 +9,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Unzip project if uploaded as zip
+        run: |
+          for z in *.zip; do
+            if [ -f "$z" ]; then
+              echo "Membuka $z"
+              unzip -o -q "$z" -d _proj
+            fi
+          done
+          true
+
+      - name: Locate project
+        id: loc
+        run: |
+          f=$(find . -name settings.gradle.kts -not -path './.git/*' | head -n1)
+          if [ -z "$f" ]; then
+            echo "settings.gradle.kts tidak ditemukan"
+            ls -R | head -50
+            exit 1
+          fi
+          echo "dir=$(dirname "$f")" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-java@v4
         with:
@@ -21,9 +41,10 @@ jobs:
           gradle-version: 8.7
 
       - name: Build debug APK
+        working-directory: ${{ steps.loc.outputs.dir }}
         run: gradle assembleDebug
 
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.loc.outputs.dir }}/app/build/outputs/apk/debug/app-debug.apk
